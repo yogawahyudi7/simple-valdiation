@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -10,11 +11,11 @@ import (
 )
 
 type User struct {
-	Username    string `validate:"required,min=4,max=20"`
-	Email       string `validate:"required,email"`
-	Age         int    `validate:"gte=0,lte=130"`
-	Gender      string `validate:"required,gender"`
-	DateOfBirth string `validate:"required,dateformat"`
+	Username    *string `validate:"required,base64,min=4,max=9"`
+	Email       string  `validate:"required,email"`
+	Age         int     `validate:"gte=0,lte=130"`
+	Gender      string  `validate:"required,gender"`
+	DateOfBirth string  `validate:"required,dateformat"`
 }
 
 func validateGender(fl validator.FieldLevel) bool {
@@ -39,18 +40,43 @@ func validateDateFormat(fl validator.FieldLevel) bool {
 	return matched
 }
 
+func ValidateDecodeBase64(fl validator.FieldLevel) bool {
+	date := fl.Field().String()
+
+	decodeString, err := base64.StdEncoding.DecodeString(date)
+	if err != nil {
+		return false
+	}
+
+	decoded := string(decodeString)
+	if !fl.Field().CanSet() { //pengecekan nilai pointer
+		return false
+	}
+	fl.Field().SetString(string(decoded)) //nilai struct yg akan ditimpa harus berupa pointer atau akan error
+	return true
+}
+
 func main() {
+
+	//username := "john_doe"
+	username := "am9obl9kb2U="
+	email := "john@example.com"
+	age := 25
+	gender := "male"
+	dateOfBirth := "1990-12-31"
+
 	user := User{
-		Username:    "john_doe",
-		Email:       "john@example.com",
-		Age:         25,
-		Gender:      "male",
-		DateOfBirth: "1990-12-31",
+		Username:    &username,
+		Email:       email,
+		Age:         age,
+		Gender:      gender,
+		DateOfBirth: dateOfBirth,
 	}
 
 	validate := validator.New()
 	validate.RegisterValidation("gender", validateGender)
 	validate.RegisterValidation("dateformat", validateDateFormat)
+	validate.RegisterValidation("base64", ValidateDecodeBase64)
 
 	err := validate.Struct(user)
 	if err != nil {
@@ -64,4 +90,7 @@ func main() {
 		// Validation passed
 		fmt.Println("Validation passed")
 	}
+
+	fmt.Println(user)
+	fmt.Println(*user.Username)
 }
