@@ -16,6 +16,8 @@ type User struct {
 	Age         int     `validate:"gte=0,lte=130"`
 	Gender      string  `validate:"required,gender"`
 	DateOfBirth string  `validate:"required,dateformat"`
+	ScoringType string  `validate:"-"`
+	Score       string  `validate:"x=aiforesee"`
 }
 
 func validateGender(fl validator.FieldLevel) bool {
@@ -56,6 +58,30 @@ func ValidateDecodeBase64(fl validator.FieldLevel) bool {
 	return true
 }
 
+func validateRequiredByScoringType(fl validator.FieldLevel) bool {
+	// Mendapatkan nilai pada properti yang di validasi
+	value := fl.Field().String()
+
+	fmt.Println("value :", value)
+	// Mendapatkan nilai properti ScoringType dari struct parent
+	scoringType := fl.Parent().FieldByName("ScoringType").String()
+
+	fmt.Println("scoringType :", scoringType)
+
+	// Mengambil nilai parameter tag
+	param := fl.Param()
+	fmt.Println("param :", param)
+
+	switch scoringType {
+	case param:
+		if value == "" {
+			return false
+		}
+	}
+
+	return true
+}
+
 func main() {
 
 	//username := "john_doe"
@@ -64,6 +90,8 @@ func main() {
 	age := 25
 	gender := "male"
 	dateOfBirth := "1990-12-31"
+	ScoringType := "aiforesee"
+	scoring := "a"
 
 	user := User{
 		Username:    &username,
@@ -71,12 +99,15 @@ func main() {
 		Age:         age,
 		Gender:      gender,
 		DateOfBirth: dateOfBirth,
+		ScoringType: ScoringType,
+		Score:       scoring,
 	}
 
 	validate := validator.New()
 	validate.RegisterValidation("gender", validateGender)
 	validate.RegisterValidation("dateformat", validateDateFormat)
 	validate.RegisterValidation("base64", ValidateDecodeBase64)
+	validate.RegisterValidation("x", validateRequiredByScoringType)
 
 	err := validate.Struct(user)
 	if err != nil {
@@ -92,5 +123,5 @@ func main() {
 	}
 
 	fmt.Println(user)
-	fmt.Println(*user.Username)
+	// fmt.Println(*user.Username)
 }
