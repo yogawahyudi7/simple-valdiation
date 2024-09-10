@@ -1,0 +1,44 @@
+func getFieldJSONTagPath(fieldName string, modelType reflect.Type) string {
+	if modelType.Kind() == reflect.Ptr {
+		modelType = modelType.Elem()
+	}
+
+	for i := 0; i < modelType.NumField(); i++ {
+		field := modelType.Field(i)
+		fieldType := field.Type
+		jsonTag := field.Tag.Get("json")
+
+		// Debugging logs
+		fmt.Println("fieldName", fieldName)
+		fmt.Println("field.Name", field.Name)
+
+		// Direct match for the field
+		if field.Name == fieldName && jsonTag != "" && jsonTag != "-" {
+			return jsonTag
+		}
+
+		// Recursion for struct fields
+		if fieldType.Kind() == reflect.Struct {
+			nestedField := getFieldJSONTagPath(fieldName, fieldType)
+			if nestedField != "" {
+				if jsonTag != "" && jsonTag != "-" {
+					return jsonTag + "." + nestedField
+				}
+				return nestedField
+			}
+		}
+
+		// Recursion for slice of struct fields
+		if fieldType.Kind() == reflect.Slice && fieldType.Elem().Kind() == reflect.Struct {
+			nestedField := getFieldJSONTagPath(fieldName, fieldType.Elem())
+			if nestedField != "" {
+				if jsonTag != "" && jsonTag != "-" {
+					return jsonTag + "[]." + nestedField
+				}
+				return "[]" + nestedField
+			}
+		}
+	}
+
+	return ""
+}
